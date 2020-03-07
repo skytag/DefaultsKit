@@ -23,6 +23,35 @@
 //
 
 import Foundation
+import Logging
+
+fileprivate let log = Logger(label: "DefaultsKit")
+
+/**
+ * Basically combines the Encoder and Decoder protocols into a single
+ */
+public protocol DefaultsCodec  {
+    func encode<T: Codable>(value: T) -> Result<Data, Error>
+    func decode<T: Codable>(type: T.Type, from data: Data) -> Result<T, Error>
+}
+
+internal class JsonCodec: DefaultsCodec {
+    internal static let shared = JsonCodec()
+
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
+
+    func encode<T: Codable>(value: T) -> Result<Data, Error> {
+        return Result(catching: {
+            return try self.encoder.encode(value)
+        })
+    }
+    func decode<T: Codable>(type: T.Type, from data: Data) -> Result<T, Error> {
+        return Result(catching: {
+            return try self.decoder.decode(type, from: data)
+        })
+    }
+}
 
 public class DefaultsKey {}
 
@@ -45,6 +74,7 @@ public final class Key<ValueType: Codable>: DefaultsKey {
 public final class Defaults {
     
     private var userDefaults: UserDefaults
+    private let codec: DefaultsCodec
     
     /// Shared instance of `Defaults`, used for ad-hoc access to the user's
     /// defaults database throughout the app.
@@ -53,8 +83,9 @@ public final class Defaults {
     /// An instance of `Defaults` with the specified `UserDefaults` instance.
     ///
     /// - Parameter userDefaults: The UserDefaults.
-    public init(userDefaults: UserDefaults = UserDefaults.standard) {
+    public init(wrapping userDefaults: UserDefaults = UserDefaults.standard, codec: DefaultsCodec? = nil) {
         self.userDefaults = userDefaults
+        self.codec = codec ?? JsonCodec.shared
     }
     
     /// Deletes the value associated with the specified key, if any.
@@ -86,18 +117,13 @@ public final class Defaults {
             return nil
         }
         
-        do {
-            let decoder = JSONDecoder()
-            let decoded = try decoder.decode(ValueType.self, from: data)
-            return decoded
-        } catch {
-            #if DEBUG
-                print(error)
-            #endif
-        }
 
-        return nil
-        
+        switch codec.decode(type: ValueType.self, from: data) {
+            case .success(let result): return result
+            case .failure(let err): 
+                log.error("Unable to decode key. key=\(key._key) targetType=\(ValueType.self) error=\(err)")
+                return nil
+        }
     }
     
     /// Sets a value associated with the specified key.
@@ -105,21 +131,20 @@ public final class Defaults {
     /// - Parameters:
     ///   - some: The value to set.
     ///   - key: The associated `Key<ValueType>`.
-    public func set<ValueType>(_ value: ValueType, for key: Key<ValueType>) {
+    public func set<ValueType>(_ value: ValueType, for key: Key<ValueType>) -> Bool {
         if isSwiftCodableType(ValueType.self) || isFoundationCodableType(ValueType.self) {
             userDefaults.set(value, forKey: key._key)
-            return
+            return true
         }
         
-        do {
-            let encoder = JSONEncoder()
-            let encoded = try encoder.encode(value)
-            userDefaults.set(encoded, forKey: key._key)
-            userDefaults.synchronize()
-        } catch {
-            #if DEBUG
-                print(error)
-            #endif
+        switch codec.encode(value: value) {
+            case .success(let data):
+                userDefaults.set(data, forKey: key._key)
+                userDefaults.synchronize()
+                return true
+            case .failure(let err):
+                log.error("Failed to encode key. key=\(key._key) value=\(value) error=\(err)")
+                return false
         }
     }
     
@@ -180,8 +205,8 @@ extension Defaults {
     /// - Parameters:
     ///   - some: The value to set.
     ///   - key: The associated `Key<ValueType>`.
-    public func set<ValueType: RawRepresentable>(_ value: ValueType, for key: Key<ValueType>) where ValueType.RawValue: Codable {
+    public func set<ValueType: RawRepresentable>(_ value: ValueType, for key: Key<ValueType>) -> Bool where ValueType.RawValue: Codable {
         let convertedKey = Key<ValueType.RawValue>(key._key)
-        set(value.rawValue, for: convertedKey)
+        return set(value.rawValue, for: convertedKey)
     }
 }

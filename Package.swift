@@ -9,10 +9,13 @@ let package = Package(
             name: "DefaultsKit",
             targets: ["DefaultsKit"]),
     ],
+    dependencies: [
+        .package(url: "git@github.com:apple/swift-log", from: "1.2.0"),
+    ],
     targets: [
         .target(
             name: "DefaultsKit",
-            dependencies: []),
+            dependencies: ["Logging"]),
         .testTarget(
             name: "DefaultsKitTests",
             dependencies: ["DefaultsKit"]),

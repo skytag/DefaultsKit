@@ -22,10 +22,14 @@
 //  SOFTWARE.
 //
 
+import Logging
 import XCTest
 @testable import DefaultsKit
 
 class DefaultsKitTests: XCTestCase {
+    override class func setUp() {
+        LoggingSystem.bootstrap(StreamLogHandler.standardError)
+    }
     
     var defaults: Defaults!
     
@@ -45,7 +49,7 @@ class DefaultsKitTests: XCTestCase {
         let value = 123
         
         // When
-        defaults.set(value, for: .integerKey)
+        XCTAssertTrue(defaults.set(value, for: .integerKey))
         
         // Then
         let hasKey = defaults.has(.integerKey)
@@ -62,7 +66,7 @@ class DefaultsKitTests: XCTestCase {
         let value: Float = 123.1
         
         // When
-        defaults.set(value, for: .floatKey)
+        XCTAssertTrue(defaults.set(value, for: .floatKey))
         
         // Then
         let hasKey = defaults.has(.floatKey)
@@ -79,7 +83,7 @@ class DefaultsKitTests: XCTestCase {
         let value: Double = 123.1
         
         // When
-        defaults.set(value, for: .doubleKey)
+        XCTAssertTrue(defaults.set(value, for: .doubleKey))
         
         // Then
         let hasKey = defaults.has(.doubleKey)
@@ -96,7 +100,7 @@ class DefaultsKitTests: XCTestCase {
         let value = "a string"
         
         // When
-        defaults.set(value, for: .stringKey)
+        XCTAssertTrue(defaults.set(value, for: .stringKey))
         
         // Then
         let hasKey = defaults.has(.stringKey)
@@ -113,7 +117,7 @@ class DefaultsKitTests: XCTestCase {
         let value = true
         
         // When
-        defaults.set(value, for: .boolKey)
+        XCTAssertTrue(defaults.set(value, for: .boolKey))
         
         // Then
         let hasKey = defaults.has(.boolKey)
@@ -130,7 +134,7 @@ class DefaultsKitTests: XCTestCase {
         let value = Date()
         
         // When
-        defaults.set(value, for: .dateKey)
+        XCTAssertTrue(defaults.set(value, for: .dateKey))
         
         // Then
         let hasKey = defaults.has(.dateKey)
@@ -147,7 +151,7 @@ class DefaultsKitTests: XCTestCase {
         let value = EnumMock.three
 
         // When
-        defaults.set(value, for: .enumKey)
+        XCTAssertTrue(defaults.set(value, for: .enumKey))
 
         // Then
         let hasKey = defaults.has(.enumKey)
@@ -162,7 +166,7 @@ class DefaultsKitTests: XCTestCase {
         let value = OptionSetMock.option3
 
         // When
-        defaults.set(value, for: .optionSetKey)
+        XCTAssertTrue(defaults.set(value, for: .optionSetKey))
 
         // Then
         let hasKey = defaults.has(.optionSetKey)
@@ -178,7 +182,7 @@ class DefaultsKitTests: XCTestCase {
         let values = [1,2,3,4]
         
         // When
-        defaults.set(values, for: .arrayOfIntegersKey)
+        XCTAssertTrue(defaults.set(values, for: .arrayOfIntegersKey))
         
         // Then
         let hasKey = defaults.has(.arrayOfIntegersKey)
@@ -198,7 +202,7 @@ class DefaultsKitTests: XCTestCase {
         let values = [1,2,3,4]
         
         // When
-        defaults.set(values, for: .arrayOfIntegersKey)
+        XCTAssertTrue(defaults.set(values, for: .arrayOfIntegersKey))
         defaults.clear(.arrayOfIntegersKey)
         
         // Then
@@ -217,7 +221,7 @@ class DefaultsKitTests: XCTestCase {
         let person = PersonMock(name: "Bonnie Greenwell", age: 80, children: [child])
         
         // When
-        defaults.set(person, for: .personMockKey)
+        XCTAssertTrue(defaults.set(person, for: .personMockKey))
         
         // Then
         let hasKey = defaults.has(.personMockKey)
